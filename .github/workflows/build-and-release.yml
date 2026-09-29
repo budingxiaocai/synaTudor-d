@@ -6,14 +6,14 @@ on:
       - 'v*'
 
   workflow_dispatch:
- 
+
 permissions:
   contents: write
- 
+
 env:
   LIBFPRINT_TOD_REPO: https://gitlab.freedesktop.org/3v1n0/libfprint.git
   LIBFPRINT_TOD_BRANCH: tod
- 
+
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -23,13 +23,13 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
- 
-      - name: Install build dependencies
+
+      - name: Install build dependencies & FPM
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential meson ninja-build pkg-config cmake \
-            git wget innoextract \
+            git wget innoextract ruby ruby-dev rpm tar zstd \
             libfprint-2-tod-dev \
             libusb-1.0-0-dev \
             libcurl4-openssl-dev \
@@ -44,35 +44,75 @@ jobs:
             libnss3-dev \
             libpixman-1-dev \
             gtk-doc-tools
- 
+          sudo gem install --no-document fpm
+
       - name: Configure build (meson setup)
         run: meson setup build --prefix=/usr --buildtype=release
- 
+
       - name: Build (ninja)
         run: ninja -C build
- 
+
       - name: Install to temporary packaging directory
         run: |
           mkdir -p "${{ github.workspace }}/pkgroot"
           DESTDIR="${{ github.workspace }}/pkgroot" ninja -C build install
- 
-      - name: Package into tar.gz
+
+      - name: Create Packages (.tar.gz, .deb, .rpm, .pkg.tar.zst)
         id: package
         run: |
-          VERSION="${GITHUB_REF_NAME:-dev-$(git rev-parse --short HEAD)}"
-          PKG_NAME="synaTudor-${VERSION}-x86_64-linux-gnu"
+          RAW_VERSION="${GITHUB_REF_NAME:-0.0.1}"
+          VERSION="${RAW_VERSION#v}"
+          if [[ -z "\(VERSION" || "\)VERSION" == "\(RAW_VERSION" && "\)RAW_VERSION" == dev* ]]; then
+            VERSION="0.0.1+$(git rev-parse --short HEAD)"
+          fi
+
+          PKG_BASE="synatudor"
+          ARCH="x86_64"
           mkdir -p dist
+
+          PKG_NAME="\({PKG_BASE}-\){VERSION}-${ARCH}-linux-gnu"
           tar -C pkgroot -czvf "dist/${PKG_NAME}.tar.gz" .
-          sha256sum "dist/${PKG_NAME}.tar.gz" > "dist/${PKG_NAME}.tar.gz.sha256"
-          echo "pkg_name=${PKG_NAME}" >> "$GITHUB_OUTPUT"
- 
+
+          fpm -s dir -t deb \
+            -n "$PKG_BASE" \
+            -v "$VERSION" \
+            -a "$ARCH" \
+            -m "Maintainer " \
+            --description "Synaptics Tudor Touch Fingerprint Driver" \
+            -C pkgroot \
+            -p "dist/\({PKG_BASE}_\){VERSION}_amd64.deb" \
+            usr/
+
+          fpm -s dir -t rpm \
+            -n "$PKG_BASE" \
+            -v "$VERSION" \
+            -a "$ARCH" \
+            -m "Maintainer " \
+            --description "Synaptics Tudor Touch Fingerprint Driver" \
+            -C pkgroot \
+            -p "dist/\({PKG_BASE}-\){VERSION}-1.${ARCH}.rpm" \
+            usr/
+
+          fpm -s dir -t pacman \
+            -n "$PKG_BASE" \
+            -v "$VERSION" \
+            -a "$ARCH" \
+            -m "Maintainer " \
+            --description "Synaptics Tudor Touch Fingerprint Driver" \
+            -C pkgroot \
+            -p "dist/\({PKG_BASE}-\){VERSION}-1-x86_64.pkg.tar.zst" \
+            usr/
+
+          cd dist
+          sha256sum * > SHA256SUMS
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: synatudor-package
           path: dist/*
           if-no-files-found: error
- 
+
   release:
     needs: build
     runs-on: ubuntu-24.04
@@ -83,13 +123,12 @@ jobs:
         with:
           name: synatudor-package
           path: dist
- 
+
       - name: Create GitHub Release and upload package
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
           generate_release_notes: true
-
           prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
