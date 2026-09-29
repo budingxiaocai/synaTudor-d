@@ -60,6 +60,12 @@ jobs:
       - name: Create Packages (.tar.gz, .deb, .rpm, .pkg.tar.zst)
         id: package
         run: |
+          if [ -d "${{ github.workspace }}/pkgroot/sbin" ]; then
+            mkdir -p "${{ github.workspace }}/pkgroot/usr/bin"
+            cp -rn "\({{ github.workspace }}/pkgroot/sbin/"* "\){{ github.workspace }}/pkgroot/usr/bin/"
+            rm -rf "${{ github.workspace }}/pkgroot/sbin"
+          fi
+          
           RAW_VERSION="${GITHUB_REF_NAME:-0.0.1}"
           VERSION="${RAW_VERSION#v}"
           if [[ -z "\(VERSION" || "\)VERSION" == "\(RAW_VERSION" && "\)RAW_VERSION" == dev* ]]; then
