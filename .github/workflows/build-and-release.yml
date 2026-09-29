@@ -29,7 +29,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential meson ninja-build pkg-config cmake \
-            git wget innoextract ruby ruby-dev rpm tar zstd \
+            git wget innoextract ruby ruby-dev rpm tar zstd libarchive-tools \
             libfprint-2-tod-dev \
             libusb-1.0-0-dev \
             libcurl4-openssl-dev \
@@ -81,7 +81,7 @@ jobs:
             --description "Synaptics Tudor Touch Fingerprint Driver" \
             -C pkgroot \
             -p "dist/\({PKG_BASE}_\){VERSION}_amd64.deb" \
-            usr/
+            usr/ sbin/
 
           fpm -s dir -t rpm \
             -n "$PKG_BASE" \
@@ -91,7 +91,7 @@ jobs:
             --description "Synaptics Tudor Touch Fingerprint Driver" \
             -C pkgroot \
             -p "dist/\({PKG_BASE}-\){VERSION}-1.${ARCH}.rpm" \
-            usr/
+            usr/ sbin/
 
           fpm -s dir -t pacman \
             -n "$PKG_BASE" \
@@ -101,7 +101,7 @@ jobs:
             --description "Synaptics Tudor Touch Fingerprint Driver" \
             -C pkgroot \
             -p "dist/\({PKG_BASE}-\){VERSION}-1-x86_64.pkg.tar.zst" \
-            usr/
+            usr/ sbin/
 
           cd dist
           sha256sum * > SHA256SUMS
