@@ -61,8 +61,8 @@ jobs:
         id: package
         run: |
           if [ -d "pkgroot/sbin" ]; then
-            mkdir -p pkgroot/usr/sbin
-            cp -a pkgroot/sbin/. pkgroot/usr/sbin/
+            mkdir -p pkgroot/usr/bin
+            cp -a pkgroot/sbin/. pkgroot/usr/bin/
             rm -rf pkgroot/sbin
           fi
           
