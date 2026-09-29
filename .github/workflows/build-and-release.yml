@@ -87,7 +87,7 @@ jobs:
             --description "Synaptics Tudor Touch Fingerprint Driver" \
             -C pkgroot \
             -p "dist/\({PKG_BASE}_\){VERSION}_amd64.deb" \
-            usr/ sbin/
+            usr/
 
           fpm -s dir -t rpm \
             -n "$PKG_BASE" \
@@ -97,7 +97,7 @@ jobs:
             --description "Synaptics Tudor Touch Fingerprint Driver" \
             -C pkgroot \
             -p "dist/\({PKG_BASE}-\){VERSION}-1.${ARCH}.rpm" \
-            usr/ sbin/
+            usr/
 
           fpm -s dir -t pacman \
             -n "$PKG_BASE" \
@@ -107,7 +107,7 @@ jobs:
             --description "Synaptics Tudor Touch Fingerprint Driver" \
             -C pkgroot \
             -p "dist/\({PKG_BASE}-\){VERSION}-1-x86_64.pkg.tar.zst" \
-            usr/ sbin/
+            usr/
 
           cd dist
           sha256sum * > SHA256SUMS
